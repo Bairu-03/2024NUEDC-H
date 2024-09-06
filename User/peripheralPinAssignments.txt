@@ -1,0 +1,42 @@
+
+- GPIOA:
+	+ High-Speed Output with internal pull-down: PA14
+	+ High-Speed Output: PA12
+	+ High-Speed Output: PA13
+	+ Standard Input: PA22
+	+ Standard Input: PA23
+	+ Standard Input: PA24
+	+ Standard Input: PA25
+	+ Standard Input: PA26
+	+ Standard Input: PA21
+	+ Standard Input: PA27
+	+ Open-Drain Output: PA0
+	+ Open-Drain Output: PA1
+	+ High-Drive Output: PA31
+	+ Standard with Wake Output: PA17
+	+ Standard Output: PA16
+	+ Standard Output: PA15
+	+ Standard Input with internal pull-up: PA7
+	+ Standard Input with internal pull-down: PA8
+	+ High-Speed Input with internal pull-down: PA9
+- GPIOB:
+	+ Standard Input with internal pull-up: PB18
+	+ Standard Input with internal pull-up: PB19
+- SYSCTL
+- TIMG7:
+	+ Capture/Compare Pin 0: PA28
+- TIMG12:
+	+ Capture/Compare Pin 0: PB20
+- TIMG0
+- TIMA0
+- TIMA1
+- I2C1:
+	+ I2C Serial Data line (SDA): PB3
+	+ I2C Serial Clock line (SCL): PB2
+- UART0:
+	+ RX Pin: PA11
+	+ TX Pin: PA10
+- EVENT
+- BOARD:
+	+ Debug Clock: PA20
+	+ Debug Data In Out: PA19
