@@ -62,8 +62,8 @@ int main(void)
     uint8_t PassPointCount = 0;        // 经过标志点次数
     uint8_t PassPointTarget = 0;       // 所需过圆弧端点次数，3题4次，4题16次
 
-	board_init();
-	OLED_Init();
+    board_init();
+    OLED_Init();
     OLED_ColorTurn(1);
     OLED_ShowString(2,1,"****Starting****",8);
     OLED_ShowString(4,33,"DLOU03-H",8);
