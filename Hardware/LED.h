@@ -7,6 +7,5 @@
 
 void LED_BEEP_On(void);
 void LED_BEEP_Off(void);
-uint8_t LED_BEEP_Toggle(void);
 
 #endif

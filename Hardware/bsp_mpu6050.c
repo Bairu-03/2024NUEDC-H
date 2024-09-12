@@ -47,11 +47,11 @@ char MPU6050_WriteReg(uint8_t addr,uint8_t regaddr,uint8_t num,uint8_t *regdata)
 
     gTxCount = DL_I2C_fillControllerTXFIFO(I2C_MPU6050_INST, &gTxPacket[0], gTxLen);
 
-    if (gTxCount < gTxLen) 
+    if (gTxCount < gTxLen)
     {
         DL_I2C_enableInterrupt(I2C_MPU6050_INST, DL_I2C_INTERRUPT_CONTROLLER_TXFIFO_TRIGGER);
-    } 
-    else 
+    }
+    else
     {
         DL_I2C_disableInterrupt(I2C_MPU6050_INST, DL_I2C_INTERRUPT_CONTROLLER_TXFIFO_TRIGGER);
     }
@@ -94,7 +94,7 @@ char MPU6050_ReadData(uint8_t addr, uint8_t regaddr,uint8_t num,uint8_t* Read)
     while (gI2cControllerStatus != I2C_STATUS_RX_COMPLETE)
     {
         initflag = 1;
-        if(MPU6050reInitFlag > 10)
+        if(MPU6050reInitFlag > 12)
         {
             MPU6050reInitFlag = 0;
             break;
@@ -124,7 +124,7 @@ uint8_t MPU_Set_Gyro_Fsr(uint8_t fsr)
     uint8_t tmp[2];
     tmp[0] = fsr<<3;
     return MPU6050_WriteReg(0x68,MPU_GYRO_CFG_REG,1,tmp); //设置陀螺仪满量程范围
-}    
+}
 
 /******************************************************************
  * 函 数 名 称：MPU_Set_Accel_Fsr
@@ -138,7 +138,7 @@ uint8_t MPU_Set_Accel_Fsr(uint8_t fsr)
 {
     uint8_t tmp[2];
     tmp[0] = fsr<<3;
-    return MPU6050_WriteReg(0x68,MPU_ACCEL_CFG_REG,1,tmp); //设置加速度传感器满量程范围  
+    return MPU6050_WriteReg(0x68,MPU_ACCEL_CFG_REG,1,tmp); //设置加速度传感器满量程范围
 }
 
 /******************************************************************
@@ -153,15 +153,15 @@ uint8_t MPU_Set_LPF(uint16_t lpf)
 {
         uint8_t data=0;
         uint8_t tmp[2];
-        
+
         if(lpf>=188)data=1;
         else if(lpf>=98)data=2;
         else if(lpf>=42)data=3;
         else if(lpf>=20)data=4;
         else if(lpf>=10)data=5;
-        else data=6; 
+        else data=6;
         tmp[0] = data;
-    return data=MPU6050_WriteReg(0x68,MPU_CFG_REG,1,tmp);//设置数字低通滤波器  
+    return data=MPU6050_WriteReg(0x68,MPU_CFG_REG,1,tmp);//设置数字低通滤波器
 }
 /******************************************************************
  * 函 数 名 称：MPU_Set_Rate
@@ -187,7 +187,7 @@ uint8_t MPU_Set_Rate(uint16_t rate)
 /******************************************************************
  * 函 数 名 称：MPU6050ReadGyro
  * 函 数 说 明：读取陀螺仪数据
- * 函 数 形 参：陀螺仪数据存储地址 
+ * 函 数 形 参：陀螺仪数据存储地址
  * 函 数 返 回：无
  * 作       者：LC
  * 备       注：无
@@ -212,7 +212,7 @@ void MPU6050ReadGyro(short *gyroData)
 /******************************************************************
  * 函 数 名 称：MPU6050ReadAcc
  * 函 数 说 明：读取加速度数据
- * 函 数 形 参：加速度数据存储地址 
+ * 函 数 形 参：加速度数据存储地址
  * 函 数 返 回：无
  * 作       者：LC
  * 备       注：无
@@ -246,8 +246,8 @@ float MPU6050_GetTemp(void)
         short temp3;
         uint8_t buf[2];
         float Temperature = 0;
-        MPU6050_ReadData(0x68,MPU6050_RA_TEMP_OUT_H,2,buf); 
-    temp3= (buf[0] << 8) | buf[1];        
+        MPU6050_ReadData(0x68,MPU6050_RA_TEMP_OUT_H,2,buf);
+    temp3= (buf[0] << 8) | buf[1];
         Temperature=((double) temp3/340.0)+36.53;
     return Temperature;
 }
@@ -265,12 +265,12 @@ uint8_t MPU6050ReadID(void)
 	unsigned char Re[2] = {0};
 	//器件ID寄存器 = 0x75
 //	printf("mpu=%d\r\n",MPU6050_ReadData(0x68,0X75,1,Re)); //读器件地址
-	
-	if (Re[0] != 0x68) 
+
+	if (Re[0] != 0x68)
 	{
 //			printf("检测不到 MPU6050 模块");
 			return 1;
-	 } 
+	 }
 	else
 	{
 //			printf("MPU6050 ID = %x\r\n",Re[0]);
@@ -300,24 +300,24 @@ char MPU6050_Init(void)
     //选择X轴陀螺作为参考PLL的时钟源，设置CLKSEL=001
     tmp[0] = 0x00;
     MPU6050_WriteReg(0x68,MPU6050_RA_PWR_MGMT_1,1, tmp);
-    
+
     MPU_Set_Gyro_Fsr(3);    //陀螺仪传感器,±2000dps
     MPU_Set_Accel_Fsr(0);   //加速度传感器,±2g
-    MPU_Set_Rate(50);                
+    MPU_Set_Rate(50);
 
     MPU6050_WriteReg(0x68,MPU_INT_EN_REG , 1,tmp);        //关闭所有中断
     MPU6050_WriteReg(0x68,MPU_USER_CTRL_REG,1,tmp);        //I2C主模式关闭
     MPU6050_WriteReg(0x68,MPU_FIFO_EN_REG,1,tmp);                //关闭FIFO
     tmp[0] = 0x80;
     MPU6050_WriteReg(0x68,MPU_INTBP_CFG_REG,1,tmp);        //INT引脚低电平有效
-      
+
     if( MPU6050ReadID() == 0 )//检查是否有6050
-    {       
+    {
             tmp[0] = 0x01;
             MPU6050_WriteReg(0x68,MPU6050_RA_PWR_MGMT_1, 1,tmp);//设置CLKSEL,PLL X轴为参考
             tmp[0] = 0x00;
             MPU6050_WriteReg(0x68,MPU_PWR_MGMT2_REG, 1,tmp);//加速度与陀螺仪都工作
-            MPU_Set_Rate(50);        
+            MPU_Set_Rate(50);
             return 1;
     }
     return 0;

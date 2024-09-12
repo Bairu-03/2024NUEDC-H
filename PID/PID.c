@@ -96,10 +96,6 @@ void PID_Reset_pid(PID *pid, uint8_t Kx, float coefficient)
  */
 float PID_Compute(PID *pid, float input)
 {
-    // // 对输入值进行滤波
-    // pid->filtered_input = exponential_filter(input, pid->filtered_input, 0.2); // 0.2为滤波系数
-    // pid->error = pid->target - pid->filtered_input;    // 计算误差
-
     pid->error = pid->target - input;    // 计算误差
     pid->integral += pid->error;    // 累积误差
     float p_term = pid->Kp * pid->error;    // 比例项

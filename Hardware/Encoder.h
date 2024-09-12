@@ -3,11 +3,14 @@
 
 #include "stdint.h"
 
-extern uint8_t Enable_CP;  // 为1时启动PA8、PA9引脚输入脉冲累计
-extern uint16_t CumulativePulsePA8, CumulativePulsePA9; // 脉冲累计值
+#define START 1
+#define STOP  0
 
 void Encoder_Init(void);
 uint16_t getEAPulseNum(void);
 uint16_t getEBPulseNum(void);
+void switchCumulativePulse(uint8_t flag);
+uint16_t getCumulativePulse(void);
+void clearCumulativePulse(void);
 
 #endif /* __ENCODER_H_ */

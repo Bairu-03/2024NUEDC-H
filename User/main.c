@@ -1,6 +1,6 @@
 #include "ti_msp_dl_config.h"
-#include "board.h"
 #include "stdint.h"
+#include "board.h"
 #include "OLED.h"
 #include "LED.h"
 #include "Trace.h"
@@ -10,6 +10,9 @@
 #include "bsp_mpu6050.h"
 #include "inv_mpu.h"
 #include "KEY.h"
+
+#define STRAIGHT_SPEED 180      // 小车直行基础速度
+#define LINE_FOLLOWING_SPEED 140  // 小车巡线基础速度
 
 // 电机A转速PID初始化
 PID MotorAPID;
@@ -51,24 +54,20 @@ uint8_t LED_BEEP_Flag = 0;
 
 int main(void)
 {
-    uint8_t Key3Status = 0;            // 目标偏航角设定键状态值
-
+    uint8_t Key3Count = 0;             // 按键3计数，设定目标偏航角
     uint8_t Run = 0;                   // 小车启停运行标志位
-    uint16_t StraightSpeed = 180;       // 小车直行速度
-    uint8_t LinefollowingSpeed = 140;  // 小车巡线速度
-
     uint8_t SwitchTasks = 0;           // 题号标志位
     uint8_t CarStatus = 0;             // 小车状态，0直行，1寻迹
+    uint8_t Task34Turn = 0;            // 第3、4题到点强制转向标志位
     uint8_t PassPointCount = 0;        // 经过标志点次数
-    uint8_t Task3Turn = 0;             // 第3题到点强制转向标志位
-    uint8_t PassPointTarget = 0;      // 所需过圆弧端点次数，3题4次，4题16次
+    uint8_t PassPointTarget = 0;       // 所需过圆弧端点次数，3题4次，4题16次
 
 	board_init();
 	OLED_Init();
+    OLED_ColorTurn(1);
     OLED_ShowString(2,1,"****Starting****",8);
     OLED_ShowString(4,33,"DLOU03-H",8);
     OLED_ShowString(6,25,"NUEDC-2024",8);
-    delay_ms(300);
 
     MPU6050_Init();
     mpu_dmp_init();
@@ -83,12 +82,14 @@ int main(void)
              MotorB_target, 0, 100, 0, 75); // 所用电机最大输入电压9v，电源电压12v，故PID输出限幅到75
     PID_Init(&yawPID,
              yaw_Kp, yaw_Ki, yaw_Kd,
-             yaw_target, -5, 5, -StraightSpeed, StraightSpeed);
+             yaw_target, -5, 5, -STRAIGHT_SPEED, STRAIGHT_SPEED);
     IncPID_Init(&TracePID,
                 Trace_Kp, Trace_Ki, Trace_Kd,
-                Trace_target, -LinefollowingSpeed, LinefollowingSpeed);
+                Trace_target, -LINE_FOLLOWING_SPEED, LINE_FOLLOWING_SPEED);
 
+    delay_ms(500);
     OLED_Clear();
+    OLED_ColorTurn(0);
     OLED_ShowFloat(3,1,yawTarget2A_B,3,2,8);
     OLED_ShowFloat(3,65,yawTarget2C_D,3,2,8);
     OLED_ShowFloat(5,1,yawTarget3A_C,3,2,8);
@@ -98,7 +99,7 @@ int main(void)
     NVIC_EnableIRQ(TIMER_1_INST_INT_IRQN);    // 使能MPU6050读取任务定时器
     while(1)
     {
-        OLED_ShowFloat(1,1,yaw_now,3,2,8);  // 显示偏航角（MPU6050）
+        OLED_ShowFloat(1,1,yaw_now,3,2,8);
         OLED_ShowNum(1,65,MPU6050flag,1,8);
 
         // 仅需要时读取MPU6050数据
@@ -113,7 +114,7 @@ int main(void)
                 MPU6050flag = 0;
             }
             // 若MPU6050超时未响应则重新初始化
-            if(MPU6050reInitFlag > 5)
+            if(MPU6050reInitFlag > 10)
             {
                 MPU6050_Init();
                 mpu_dmp_init();
@@ -124,18 +125,26 @@ int main(void)
         // 按键3设定当前目标偏航角
         if(get_Key3Num() == 0)
         {
-            Key3Status++;
+            Key3Count++;
 
-            if(Key3Status == 1)
+            switch (Key3Count)
+            {
+            case 1:
                 yawTarget2A_B = yawP;
-            if(Key3Status == 2)
+                break;
+            case 2:
                 yawTarget2C_D = yawP;
-            if(Key3Status == 3)
+                break;
+            case 3:
                 yawTarget3A_C = yawP;
-            if(Key3Status == 4)
+                break;
+            case 4:
                 yawTarget3B_D = yawP;
-            if(Key3Status == 5)
-                Key3Status = 0;
+                Key3Count = 0;
+                break;
+            default:
+                break;
+            }
 
             OLED_ShowFloat(3,1,yawTarget2A_B,3,2,8);
             OLED_ShowFloat(3,65,yawTarget2C_D,3,2,8);
@@ -151,19 +160,24 @@ int main(void)
             if(SwitchTasks > 4)
                 SwitchTasks = 1;
 
-            if(SwitchTasks == 1)
-                OLED_ShowString(7,1,"(1):A-B         ",8);
-            if(SwitchTasks == 2)
-                OLED_ShowString(7,1,"(2):A-B-C-D-A   ",8);
-            if(SwitchTasks == 3)
+            switch (SwitchTasks)
             {
+            case 1:
+                OLED_ShowString(7,1,"(1):A-B         ",8);
+                break;
+            case 2:
+                OLED_ShowString(7,1,"(2):A-B-C-D-A   ",8);
+                break;
+            case 3:
                 PassPointTarget = 4;
                 OLED_ShowString(7,1,"(3):A-C-B-D-A   ",8);
-            }
-            if(SwitchTasks == 4)
-            {
+                break;
+            case 4:
                 PassPointTarget = 16;
                 OLED_ShowString(7,1,"(4):(3)x4       ",8);
+                break;
+            default:
+                break;
             }
         }
 
@@ -192,8 +206,8 @@ int main(void)
                 {
                     MPU6050runflag = 1;
 
-                    PID_ResetTarget(&MotorAPID, StraightSpeed - yaw_pidout);
-                    PID_ResetTarget(&MotorBPID, StraightSpeed + yaw_pidout);
+                    PID_ResetTarget(&MotorAPID, STRAIGHT_SPEED - yaw_pidout);
+                    PID_ResetTarget(&MotorBPID, STRAIGHT_SPEED + yaw_pidout);
 
                     yawSelectedTarget = yawTarget2A_B;
                     PID_ResetTarget(&yawPID, yawSelectedTarget);
@@ -203,7 +217,7 @@ int main(void)
                 // 检测到黑线，停车，声光提示
                 else
                 {
-                    LED_BEEP_Flag = LED_BEEP_Toggle();
+                    LED_BEEP_Flag = 1;    // 启动声光提示
                     Run = 0;
                 }
             }
@@ -221,8 +235,8 @@ int main(void)
                 {
                     MPU6050runflag = 1;  // 启动陀螺仪
 
-                    PID_ResetTarget(&MotorAPID, StraightSpeed - yaw_pidout);
-                    PID_ResetTarget(&MotorBPID, StraightSpeed + yaw_pidout);
+                    PID_ResetTarget(&MotorAPID, STRAIGHT_SPEED - yaw_pidout);
+                    PID_ResetTarget(&MotorBPID, STRAIGHT_SPEED + yaw_pidout);
 
                     yawSelectedTarget = yawTarget2A_B;
                     if(PassPointCount == 2)
@@ -235,7 +249,7 @@ int main(void)
                     {
                         CarStatus = 1;    // 切换到寻迹模式
                         PassPointCount++;
-                        LED_BEEP_Flag = LED_BEEP_Toggle();
+                        LED_BEEP_Flag = 1;    // 启动声光提示
                     }
                 }
                 // 寻迹模式，走过一定距离仍检测不到黑线则切换到直行模式
@@ -243,32 +257,31 @@ int main(void)
                 {
                     MPU6050runflag = 0;    // 关闭陀螺仪
                     // PID巡线
-                    PID_ResetTarget(&MotorAPID, LinefollowingSpeed + Trace_pidout);
-                    PID_ResetTarget(&MotorBPID, LinefollowingSpeed - Trace_pidout);
+                    PID_ResetTarget(&MotorAPID, LINE_FOLLOWING_SPEED + Trace_pidout);
+                    PID_ResetTarget(&MotorBPID, LINE_FOLLOWING_SPEED - Trace_pidout);
 
                     Car_Status(Car_F, MotorA_pidout, MotorB_pidout);
 
                     // 未检测到黑线，启动左右轮编码器计数
-                    // 左右轮平均脉冲数超过一定值认为走出圆弧，声光提示并切换到直行
                     if(get_T_ALL() == 0x00)
                     {
-                        Enable_CP = 1;    // 启动左右轮编码器累加计数
-                        if(((CumulativePulsePA8 + CumulativePulsePA9) / 2) > 550)
+                        switchCumulativePulse(START);
+
+                        // 左右轮平均脉冲数超过一定值认为走出圆弧，声光提示并切换到直行
+                        if(getCumulativePulse() > 550)
                         {
-                            CarStatus = 0;    // 切换到直行模式
-                            Enable_CP = 0;
-                            CumulativePulsePA8 = 0;
-                            CumulativePulsePA9 = 0;
+                            CarStatus = 0;
+                            switchCumulativePulse(STOP);
+                            clearCumulativePulse();
                             PassPointCount++;
-                            LED_BEEP_Flag = LED_BEEP_Toggle();
+                            LED_BEEP_Flag = 1;    // 启动声光提示
                         }
                     }
                     // 左右轮平均脉冲数未达到一定值时检测到黑线，则证明未出圆弧，重置累加计数值
                     else
                     {
-                        Enable_CP = 0;
-                        CumulativePulsePA8 = 0;
-                        CumulativePulsePA9 = 0;
+                        switchCumulativePulse(STOP);
+                        clearCumulativePulse();
                     }
                 }
                 // 经过4个点，停车
@@ -294,8 +307,8 @@ int main(void)
                 {
                     MPU6050runflag = 1;
 
-                    PID_ResetTarget(&MotorAPID, StraightSpeed - yaw_pidout);
-                    PID_ResetTarget(&MotorBPID, StraightSpeed + yaw_pidout);
+                    PID_ResetTarget(&MotorAPID, STRAIGHT_SPEED - yaw_pidout);
+                    PID_ResetTarget(&MotorBPID, STRAIGHT_SPEED + yaw_pidout);
 
                     yawSelectedTarget = yawTarget3A_C;
                     if(PassPointCount == 2 || PassPointCount == 6 || PassPointCount == 10 || PassPointCount == 14)
@@ -309,12 +322,12 @@ int main(void)
                         CarStatus = 1;
                         PassPointCount++;
                         if(PassPointCount == 1 || PassPointCount == 5 || PassPointCount == 9 || PassPointCount == 13)
-                            Task3Turn = 1;
+                            Task34Turn = 1;
                         else if(PassPointCount == 3 || PassPointCount == 7 || PassPointCount == 11 || PassPointCount == 15)
-                            Task3Turn = 2;
+                            Task34Turn = 2;
                         else
-                            Task3Turn = 0;
-                        LED_BEEP_Flag = LED_BEEP_Toggle();
+                            Task34Turn = 0;
+                        LED_BEEP_Flag = 1;    // 启动声光提示
                     }
                 }
                 // 寻迹模式，走过一定距离仍检测不到黑线则切换到直行模式
@@ -323,12 +336,12 @@ int main(void)
                     MPU6050runflag = 0;
 
                     // 方向调整：从A出发到C，左转找线
-                    if(Task3Turn == 1)
+                    if(Task34Turn == 1)
                     {
                         PID_ResetTarget(&MotorAPID, 90);
                         PID_ResetTarget(&MotorBPID, 90);
-                        Enable_CP = 1;
-                        while((((CumulativePulsePA8 + CumulativePulsePA9) / 2) < 850) && (Run == 1))
+                        switchCumulativePulse(START);
+                        while((getCumulativePulse() < 850) && (Run == 1))
                         {
                             if (get_Key2Num() == 0)
                             {
@@ -337,9 +350,8 @@ int main(void)
                             Car_Status(Car_F, MotorA_pidout, MotorB_pidout);
                             delay_ms(5);
                         }
-                        Enable_CP = 0;
-                        CumulativePulsePA8 = 0;
-                        CumulativePulsePA9 = 0;
+                        switchCumulativePulse(STOP);
+                        clearCumulativePulse();
 
                         PID_ResetTarget(&MotorAPID, 60);
                         PID_ResetTarget(&MotorBPID, 60);
@@ -353,16 +365,16 @@ int main(void)
                             delay_ms(5);
                         }
 
-                        Task3Turn = 0;
+                        Task34Turn = 0;
                     }
 
                     // 方向调整：从B出发到D，右转找线
-                    if(Task3Turn == 2)
+                    if(Task34Turn == 2)
                     {
                         PID_ResetTarget(&MotorAPID, 90);
                         PID_ResetTarget(&MotorBPID, 90);
-                        Enable_CP = 1;
-                        while((((CumulativePulsePA8 + CumulativePulsePA9) / 2) < 850) && (Run == 1))
+                        switchCumulativePulse(START);
+                        while((getCumulativePulse() < 850) && (Run == 1))
                         {
                             if(get_Key2Num() == 0)
                             {
@@ -371,9 +383,8 @@ int main(void)
                             Car_Status(Car_F, MotorA_pidout, MotorB_pidout);
                             delay_ms(5);
                         }
-                        Enable_CP = 0;
-                        CumulativePulsePA8 = 0;
-                        CumulativePulsePA9 = 0;
+                        switchCumulativePulse(STOP);
+                        clearCumulativePulse();
 
                         PID_ResetTarget(&MotorAPID, 60);
                         PID_ResetTarget(&MotorBPID, 60);
@@ -386,36 +397,35 @@ int main(void)
                             Car_Status(Car_R, MotorA_pidout, MotorB_pidout);
                             delay_ms(5);
                         }
-                        Task3Turn = 0;
+                        Task34Turn = 0;
                     }
 
                     // PID巡线
-                    PID_ResetTarget(&MotorAPID, LinefollowingSpeed + Trace_pidout);
-                    PID_ResetTarget(&MotorBPID, LinefollowingSpeed - Trace_pidout);
+                    PID_ResetTarget(&MotorAPID, LINE_FOLLOWING_SPEED + Trace_pidout);
+                    PID_ResetTarget(&MotorBPID, LINE_FOLLOWING_SPEED - Trace_pidout);
 
                     Car_Status(Car_F, MotorA_pidout, MotorB_pidout);
 
                     // 未检测到黑线，启动左右轮编码器计数
-                    // 左右轮平均脉冲数超过一定值认为走出圆弧，声光提示并切换到直行
                     if(get_T_ALL() == 0x00)
                     {
-                        Enable_CP = 1;
-                        if(((CumulativePulsePA8 + CumulativePulsePA9) / 2) > 550)
+                        switchCumulativePulse(START);
+
+                        // 左右轮平均脉冲数超过一定值认为走出圆弧，声光提示并切换到直行
+                        if(getCumulativePulse() > 550)
                         {
                             CarStatus = 0;
-                            Enable_CP = 0;
-                            CumulativePulsePA8 = 0;
-                            CumulativePulsePA9 = 0;
+                            switchCumulativePulse(STOP);
+                            clearCumulativePulse();
                             PassPointCount++;
-                            LED_BEEP_Flag = LED_BEEP_Toggle();
+                            LED_BEEP_Flag = 1;    // 启动声光提示
                         }
                     }
                     // 左右轮平均脉冲数未达到一定值时检测到黑线，则证明未出圆弧，重置累加计数值
                     else
                     {
-                        Enable_CP = 0;
-                        CumulativePulsePA8 = 0;
-                        CumulativePulsePA9 = 0;
+                        switchCumulativePulse(STOP);
+                        clearCumulativePulse();
                     }
                 }
                 // 经过位置点达到设定次数，停车
@@ -474,6 +484,7 @@ void TIMER_1_INST_IRQHandler(void)
 
     if(LED_BEEP_Flag)
     {
+        LED_BEEP_On();
         LED_BEEP_Count++;
     }
     if(LED_BEEP_Count > 6)
