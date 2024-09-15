@@ -2624,7 +2624,7 @@ Removing Unused input sections from the image.
     Removing pid.o(.ARM.exidx.text.PID_Reset_pid), (8 bytes).
     Removing pid.o(.ARM.exidx.text.PID_Compute), (8 bytes).
     Removing pid.o(.ARM.exidx.text.IncPID_Init), (8 bytes).
-    Removing pid.o(.text.IncPID_ResetTarget), (22 bytes).
+    Removing pid.o(.text.IncPID_ResetTarget), (16 bytes).
     Removing pid.o(.ARM.exidx.text.IncPID_ResetTarget), (8 bytes).
     Removing pid.o(.text.IncPID_Reset_pid), (64 bytes).
     Removing pid.o(.ARM.exidx.text.IncPID_Reset_pid), (8 bytes).
@@ -3677,7 +3677,7 @@ Removing Unused input sections from the image.
     Removing dl_sysctl_mspm0g1x0x_g3x0x.o(.text.DL_SYSCTL_getPowerPolicySTANDBY), (80 bytes).
     Removing dl_sysctl_mspm0g1x0x_g3x0x.o(.ARM.exidx.text.DL_SYSCTL_getPowerPolicySTANDBY), (8 bytes).
 
-1365 unused section(s) (total 49495 bytes) removed from the image.
+1365 unused section(s) (total 49489 bytes) removed from the image.
 
 ==============================================================================
 
@@ -5424,14 +5424,14 @@ Image component sizes
         76          4          0          0          0       3770   led.o
       2972        424        105         48        259       6249   main.o
       1934         24       2072          0          0       9326   oled.o
-       602          0          0          0          0       3197   pid.o
+       602          0          0          0          0       3189   pid.o
        112         16          0          0          0       3562   pwm.o
         44         18        192          0      16384        696   startup_mspm0g350x_uvision.o
       2300        220        105          0        496      33645   ti_msp_dl_config.o
        704          4          0          0          0       4889   trace.o
 
     ----------------------------------------------------------------------
-     21644       1542       5656        104      17464     165405   Object Totals
+     21644       1542       5656        104      17464     165397   Object Totals
          0          0         32          0          0          0   (incl. Generated)
         28          0          9          3         16          0   (incl. Padding)
 
@@ -5520,8 +5520,8 @@ Image component sizes
 
       Code (inc. data)   RO Data    RW Data    ZI Data      Debug   
 
-     29492       1914       6092        104      17560     167069   Grand Totals
-     29492       1914       6092        104      17560     167069   ELF Image Totals
+     29492       1914       6092        104      17560     167061   Grand Totals
+     29492       1914       6092        104      17560     167061   ELF Image Totals
      29492       1914       6092        104          0          0   ROM Totals
 
 ==============================================================================
