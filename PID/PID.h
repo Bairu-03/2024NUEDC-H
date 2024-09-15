@@ -1,42 +1,39 @@
-/*
- * PID.h
- *
- *  Created on: 2024年7月17日
- *      Author: Bairu
+/**
+ * @file    PID.h
+ * @version v1.3
+ * @author  Bairu
+ * @date    2024年8月21日 16:09:44
+ * @brief   PID算法头文件，定义PID参数结构体及函数
  */
 
-#ifndef PID_PID_H_
-#define PID_PID_H_
+#ifndef __PID_H
+#define __PID_H
 
 #include "stdint.h"
 
-// PID的作用概述：
-// 1、P产生响应速度和力度，过小响应慢，过大会产生振荡，是I和D的基础。
-// 2、I在有系统误差和外力作用时消除偏差、提高精度，同时也会增加响应速度，产生过冲，过大会产生振荡。
-// 3、D抑制过冲和振荡，过小系统会过冲，过大会减慢响应速度。D的另外一个作用是抵抗外界的突发干扰，阻止系统的突变。
+#define K_p 1
+#define K_i 2
+#define K_d 3
 
-// 位置式PID参数结构体
-typedef struct {
-    float Kp, Ki, Kd;  // 比例、积分、微分系数
-    float target; // 目标值
-    float error; // 偏差值
-    float last_error; // 前一次偏差
-    float integral;   // 积分值
-    float filtered_input; // 滤波后的输入值
-    float maxIntegral, minIntegral; //积分限幅
-    float maxOutput, minOutput; //输出限幅
+/**
+ * PID的作用概述：
+ * 1、P产生响应速度和力度，过小响应慢，过大会产生振荡，是I和D的基础。
+ * 2、I在有系统误差和外力作用时消除偏差、提高精度，同时也会增加响应速度，产生过冲，过大会产生振荡。
+ * 3、D抑制过冲和振荡，过小系统会过冲，过大会减慢响应速度。D的另外一个作用是抵抗外界的突发干扰，阻止系统的突变。
+ */
+
+/**************************** 位置式PID ****************************/
+
+typedef struct
+{
+    float Kp, Ki, Kd;               // 比例、积分、微分系数
+    float target;                   // 目标值
+    float error;                    // 偏差值
+    float last_error;               // 前一次偏差
+    float integral;                 // 积分值
+    float maxIntegral, minIntegral; // 积分限幅
+    float maxOutput, minOutput;     // 输出限幅
 } PID;
-
-// 增量式PID参数结构体
-typedef struct {
-    float Kp, Ki, Kd;  // 比例、积分、微分系数
-    float target; // 目标值
-    float error; // 偏差值
-    float last_error; // 前一次偏差
-    float prev_error; // 前两次偏差
-    float maxOutput, minOutput; //输出限幅
-    float IncPID_Output;
-} IncPID;
 
 void PID_Init(PID *pid, float Kp, float Ki, float Kd, float target,
               float minIntegral, float maxIntegral,
@@ -45,16 +42,39 @@ void PID_ResetTarget(PID *pid, float target);
 void PID_Reset_pid(PID *pid, uint8_t Kx, float coefficient);
 float PID_Compute(PID *pid, float input);
 
+/******************************************************************/
+
+/**************************** 增量式PID ****************************/
+
+typedef struct
+{
+    float Kp, Ki, Kd;           // 比例、积分、微分系数
+    float target;               // 目标值
+    float error;                // 偏差值
+    float last_error;           // 前一次偏差
+    float prev_error;           // 前两次偏差
+    float maxOutput, minOutput; // 输出限幅
+    float IncPID_Output;        // PID运算结果
+} IncPID;
+
 void IncPID_Init(IncPID *incpid, float Kp, float Ki, float Kd, float target,
-              float minOutput, float maxOutput);
+                 float minOutput, float maxOutput);
 void IncPID_ResetTarget(IncPID *incpid, float target);
 void IncPID_Reset_pid(IncPID *incpid, uint8_t Kx, float coefficient);
 float IncPID_Compute(IncPID *incpid, float input);
 
-#endif /* PID_PID_H_ */
+/******************************************************************/
+
+/***************************** 滤波器 *****************************/
+
+float EWMA_filter(float input, float filtered_value, float alpha);
+
+/******************************************************************/
+
+#endif /* __PID_H */
 
 /************************************************************************
- *             PID控制例程 - openMV寻迹小车控制（阿克曼转向）              *
+ *        PID控制例程 - openMV寻迹小车 (MSP430F5529 阿克曼转向小车)        *
  ************************************************************************
 #include "driverlib.h"
 #include <stdio.h>
@@ -122,17 +142,17 @@ void main(void)
                 if(UART1_RX_BUF[0] == 'p')
                 {
                     sscanf(temp_pid, "%f", &uart_p);
-                    PID_Reset_pid(&MotorPID, 1, uart_p);
+                    PID_Reset_pid(&MotorPID, K_p, uart_p);
                 }
                 if(UART1_RX_BUF[0] == 'i')
                 {
                     sscanf(temp_pid, "%f", &uart_i);
-                    PID_Reset_pid(&MotorPID, 2, uart_i);
+                    PID_Reset_pid(&MotorPID, K_i, uart_i);
                 }
                 if(UART1_RX_BUF[0] == 'd')
                 {
                     sscanf(temp_pid, "%f", &uart_d);
-                    PID_Reset_pid(&MotorPID, 3, uart_d);
+                    PID_Reset_pid(&MotorPID, K_d, uart_d);
                 }
                 UART_printf(USCI_A1_BASE, "OK\n");
             }
